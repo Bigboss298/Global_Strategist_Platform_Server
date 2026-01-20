@@ -252,3 +252,4 @@ C:\Users\stone\Desktop\TBP\Global_Strategist_Platform_Server\obj\Debug\net8.0\re
 C:\Users\stone\Desktop\TBP\Global_Strategist_Platform_Server\obj\Debug\net8.0\Global_Strategist_Platform_Server.pdb
 C:\Users\stone\Desktop\TBP\Global_Strategist_Platform_Server\obj\Debug\net8.0\Global_Strategist_Platform_Server.genruntimeconfig.cache
 C:\Users\stone\Desktop\TBP\Global_Strategist_Platform_Server\obj\Debug\net8.0\ref\Global_Strategist_Platform_Server.dll
+C:\Users\stone\Desktop\TBP\Global_Strategist_Platform_Server\obj\Debug\net8.0\Global_Strategist_Platform_Server.sourcelink.json
