@@ -12,19 +12,14 @@ using Global_Strategist_Platform_Server.Gateway.FileManager;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS configuration
+// Add CORS configuration - Allow all origins
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5173",  // Vite default dev server
-            "http://localhost:3000",  // Alternative port
-            "http://localhost:3001"   // Alternative port
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
