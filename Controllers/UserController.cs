@@ -58,7 +58,7 @@ public class UserController(IUserService userService) : ControllerBase
 
     [Authorize]
     [HttpPut("{id}")]
-    public async Task<ActionResult<UserDto>> Update(Guid id, [FromBody] UpdateUserDto updateDto)
+    public async Task<ActionResult<UserDto>> Update(Guid id, [FromForm] UpdateUserDto updateDto)
     {
         try
         {
@@ -70,6 +70,10 @@ public class UserController(IUserService userService) : ControllerBase
             return NotFound(ex.Message);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }

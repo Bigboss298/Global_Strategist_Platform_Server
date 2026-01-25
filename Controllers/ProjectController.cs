@@ -79,7 +79,7 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ProjectDto>> Create([FromBody] CreateProjectDto createDto)
+    public async Task<ActionResult<ProjectDto>> Create([FromForm] CreateProjectDto createDto)
     {
         try
         {
@@ -94,10 +94,14 @@ public class ProjectController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ProjectDto>> Update(Guid id, [FromBody] UpdateProjectDto updateDto)
+    public async Task<ActionResult<ProjectDto>> Update(Guid id, [FromForm] UpdateProjectDto updateDto)
     {
         try
         {
@@ -109,6 +113,10 @@ public class ProjectController : ControllerBase
             return NotFound(ex.Message);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }

@@ -3,6 +3,8 @@ using Global_Strategist_Platform_Server.Interface.Repositories;
 using Global_Strategist_Platform_Server.Interface.Services;
 using Global_Strategist_Platform_Server.Model.DTOs;
 using Global_Strategist_Platform_Server.Model.Entities;
+using Global_Strategist_Platform_Server.Model.Enum;
+using Global_Strategist_Platform_Server.Gateway.FileManager;
 
 namespace Global_Strategist_Platform_Server.Implementation.Services;
 
@@ -10,13 +12,16 @@ public class ProjectService : IProjectService
 {
     private readonly IBaseRepository<Project> _projectRepository;
     private readonly IBaseRepository<Category> _categoryRepository;
+    private readonly IFileManager _fileManager;
 
     public ProjectService(
         IBaseRepository<Project> projectRepository,
-        IBaseRepository<Category> categoryRepository)
+        IBaseRepository<Category> categoryRepository,
+        IFileManager fileManager)
     {
         _projectRepository = projectRepository;
         _categoryRepository = categoryRepository;
+        _fileManager = fileManager;
     }
 
     public async Task<ProjectDto?> GetByIdAsync(Guid id)
@@ -103,11 +108,24 @@ public class ProjectService : IProjectService
         if (string.IsNullOrWhiteSpace(createDto.Name))
             throw new ArgumentException("Project name is required.", nameof(createDto));
 
-        if (string.IsNullOrWhiteSpace(createDto.ImageUrl))
-            throw new ArgumentException("Image URL is required.", nameof(createDto));
-
         var category = await _categoryRepository.GetByIdAsync(createDto.CategoryId) ??
             throw new KeyNotFoundException($"Category with ID {createDto.CategoryId} not found.");
+
+        string imageUrl = string.Empty;
+        
+        // Handle image upload
+        if (createDto.Image != null)
+        {
+            var uploadResult = await _fileManager.UploadFile(createDto.Image, FileCategory.ProjectImage);
+            if (uploadResult.success)
+            {
+                imageUrl = uploadResult.fileUrl;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Failed to upload project image: {uploadResult.message}");
+            }
+        }
 
         var project = new Project
         {
@@ -115,7 +133,7 @@ public class ProjectService : IProjectService
             CategoryId = createDto.CategoryId,
             Name = createDto.Name.Trim(),
             Description = createDto.Description?.Trim() ?? string.Empty,
-            ImageUrl = createDto.ImageUrl.Trim(),
+            ImageUrl = imageUrl,
             DateCreated = DateTime.UtcNow,
             IsDeleted = false
         };
@@ -134,12 +152,28 @@ public class ProjectService : IProjectService
         if (string.IsNullOrWhiteSpace(updateDto.Name))
             throw new ArgumentException("Project name is required.", nameof(updateDto));
 
-        if (string.IsNullOrWhiteSpace(updateDto.ImageUrl))
-            throw new ArgumentException("Image URL is required.", nameof(updateDto));
-
         project.Name = updateDto.Name.Trim();
         project.Description = updateDto.Description?.Trim() ?? string.Empty;
-        project.ImageUrl = updateDto.ImageUrl.Trim();
+        
+        // Handle image upload if provided
+        if (updateDto.Image != null)
+        {
+            var uploadResult = await _fileManager.UploadFile(updateDto.Image, FileCategory.ProjectImage);
+            if (uploadResult.success)
+            {
+                // Delete old image if exists
+                if (!string.IsNullOrEmpty(project.ImageUrl))
+                {
+                    await _fileManager.DeleteFile(project.ImageUrl, FileCategory.ProjectImage);
+                }
+                project.ImageUrl = uploadResult.fileUrl;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Failed to upload project image: {uploadResult.message}");
+            }
+        }
+        
         project.DateUpdated = DateTime.UtcNow;
 
         await _projectRepository.UpdateAsync(project);

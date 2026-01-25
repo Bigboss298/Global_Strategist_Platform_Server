@@ -4,6 +4,8 @@ using Global_Strategist_Platform_Server.Interface.Repositories;
 using Global_Strategist_Platform_Server.Interface.Services;
 using Global_Strategist_Platform_Server.Model.DTOs;
 using Global_Strategist_Platform_Server.Model.Entities;
+using Global_Strategist_Platform_Server.Model.Enum;
+using Global_Strategist_Platform_Server.Gateway.FileManager;
 using Microsoft.EntityFrameworkCore;
 
 namespace Global_Strategist_Platform_Server.Implementation.Services;
@@ -11,10 +13,12 @@ namespace Global_Strategist_Platform_Server.Implementation.Services;
 public class UserService : IUserService
 {
     private readonly IBaseRepository<User> _userRepository;
+    private readonly IFileManager _fileManager;
 
-    public UserService(IBaseRepository<User> userRepository)
+    public UserService(IBaseRepository<User> userRepository, IFileManager fileManager)
     {
         _userRepository = userRepository;
+        _fileManager = fileManager;
     }
 
     public async Task<UserDto?> GetByIdAsync(Guid id)
@@ -75,11 +79,48 @@ public class UserService : IUserService
         user.LastName = updateDto.LastName?.Trim() ?? string.Empty;
         user.Headline = updateDto.Headline?.Trim() ?? string.Empty;
         user.Country = updateDto.Country?.Trim() ?? string.Empty;
-        user.ProfilePhotoUrl = updateDto.ProfilePhotoUrl?.Trim() ?? string.Empty;
         user.Certification = updateDto.Certification?.Trim() ?? string.Empty;
         user.Title = updateDto.Title?.Trim() ?? string.Empty;
         user.ShortBio = updateDto.ShortBio?.Trim() ?? string.Empty;
-        user.CvFileUrl = updateDto.CvFileUrl?.Trim() ?? string.Empty;
+        
+        // Handle ProfilePhoto upload
+        if (updateDto.ProfilePhoto != null)
+        {
+            var uploadResult = await _fileManager.UploadFile(updateDto.ProfilePhoto, FileCategory.ProfilePicture);
+            if (uploadResult.success)
+            {
+                // Delete old profile photo if exists
+                if (!string.IsNullOrEmpty(user.ProfilePhotoUrl))
+                {
+                    await _fileManager.DeleteFile(user.ProfilePhotoUrl, FileCategory.ProfilePicture);
+                }
+                user.ProfilePhotoUrl = uploadResult.fileUrl;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Failed to upload profile photo: {uploadResult.message}");
+            }
+        }
+        
+        // Handle CvFile upload
+        if (updateDto.CvFile != null)
+        {
+            var uploadResult = await _fileManager.UploadFile(updateDto.CvFile, FileCategory.CVFile);
+            if (uploadResult.success)
+            {
+                // Delete old CV file if exists
+                if (!string.IsNullOrEmpty(user.CvFileUrl))
+                {
+                    await _fileManager.DeleteFile(user.CvFileUrl, FileCategory.CVFile);
+                }
+                user.CvFileUrl = uploadResult.fileUrl;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Failed to upload CV file: {uploadResult.message}");
+            }
+        }
+        
         user.DateUpdated = DateTime.UtcNow;
 
         await _userRepository.UpdateAsync(user);

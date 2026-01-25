@@ -10,6 +10,8 @@ using Global_Strategist_Platform_Server.Model.DTOs;
 using Global_Strategist_Platform_Server.Model.Entities;
 using Global_Strategist_Platform_Server.Model.Enum;
 using Global_Strategist_Platform_Server.Gateway.EmailSender;
+using Global_Strategist_Platform_Server.Model.Exceptions;
+using Global_Strategist_Platform_Server.Gateway.FileManager;
 
 namespace Global_Strategist_Platform_Server.Implementation.Services;
 
@@ -22,6 +24,7 @@ public class AuthService : IAuthService
     private readonly ICorporateService _corporateService;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IFileManager _fileManager;
 
     public AuthService(
         IBaseRepository<User> userRepository,
@@ -30,7 +33,9 @@ public class AuthService : IAuthService
         IBaseRepository<CorporateInvite> corporateInviteRepository,
         ICorporateService corporateService,
         IEmailService emailService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IFileManager fileManager
+        )
     {
         _userRepository = userRepository;
         _refreshTokenRepository = refreshTokenRepository;
@@ -39,6 +44,7 @@ public class AuthService : IAuthService
         _corporateService = corporateService;
         _emailService = emailService;
         _configuration = configuration;
+        _fileManager = fileManager;
     }
 
     //public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, string ipAddress)
@@ -87,6 +93,9 @@ public class AuthService : IAuthService
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, BCrypt.Net.BCrypt.GenerateSalt());
 
+        (bool success, string message, string fileUrl) = await _fileManager.UploadFile(dto.CvFile, FileCategory.CVFile);
+        if (!success) throw new BadRequestException(message);
+
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -98,7 +107,7 @@ public class AuthService : IAuthService
             Certification = dto.Certification,
             Title = dto.Title,
             ShortBio = dto.ShortBio,
-            CvFileUrl = dto.CvFileUrl ?? string.Empty,
+            CvFileUrl = fileUrl ?? string.Empty,
             Headline = string.Empty,
             Country = dto.Country.Trim(),
             ProfilePhotoUrl = string.Empty,
@@ -343,6 +352,9 @@ public class AuthService : IAuthService
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, BCrypt.Net.BCrypt.GenerateSalt());
 
+        (bool success, string message, string fileUrl) = await _fileManager.UploadFile(dto.CvFile, FileCategory.ProfilePicture);
+        if (!success) throw new BadRequestException(message);
+
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -356,7 +368,7 @@ public class AuthService : IAuthService
             ProfilePhotoUrl = string.Empty,
             Certification = dto.Certification ?? string.Empty,
             ShortBio = dto.ShortBio ?? string.Empty,
-            CvFileUrl = dto.CvFileUrl ?? string.Empty,
+            CvFileUrl = fileUrl ?? string.Empty,
             IsActive = true,
             Role = Role.CorporateTeam,
             CorporateAccountId = invite.CorporateAccountId,

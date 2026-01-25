@@ -83,7 +83,7 @@ public class RegisterIndividualRequest
     [StringLength(500)]
     public string ShortBio { get; set; } = string.Empty;
 
-    public string? CvFileUrl { get; set; }
+    public IFormFile? CvFile { get; set; }
 
     [Required]
     [StringLength(100)]
@@ -167,7 +167,7 @@ public class RegisterTeamMemberRequest
 
     public string? Certification { get; set; }
     public string? ShortBio { get; set; }
-    public string? CvFileUrl { get; set; }
+    public IFormFile? CvFile { get; set; }
 
     [Required]
     [StringLength(100)]

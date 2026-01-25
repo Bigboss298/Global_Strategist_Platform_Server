@@ -13,7 +13,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     private readonly IAuthService _authService = authService;
 
     [HttpPost("register/individual")]
-    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterIndividualRequest dto)
+    public async Task<ActionResult<AuthResponseDto>> Register([FromForm] RegisterIndividualRequest dto)
     {
         try
         {
@@ -174,7 +174,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 
     [HttpPost("register/team-member")]
     [AllowAnonymous]
-    public async Task<IActionResult> RegisterTeamMember([FromBody] RegisterTeamMemberRequest dto)
+    public async Task<IActionResult> RegisterTeamMember([FromForm] RegisterTeamMemberRequest dto)
     {
         try
         {

@@ -30,7 +30,7 @@ public class CreateUserDto
     public string Password { get; set; } = string.Empty;
     public string Headline { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
-    public string ProfilePhotoUrl { get; set; } = string.Empty;
+    public IFormFile? ProfilePhoto { get; set; }
 }
 
 public class UpdateUserDto
@@ -39,11 +39,11 @@ public class UpdateUserDto
     public string LastName { get; set; } = string.Empty;
     public string Headline { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
-    public string ProfilePhotoUrl { get; set; } = string.Empty;
+    public IFormFile? ProfilePhoto { get; set; }
     public string Certification { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string ShortBio { get; set; } = string.Empty;
-    public string CvFileUrl { get; set; } = string.Empty;
+    public IFormFile? CvFile { get; set; }
     public bool IsActive { get; set; }
 }
 
