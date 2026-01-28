@@ -124,6 +124,7 @@ public class CommentService(
             ReportId = comment.ReportId,
             StrategistId = comment.StrategistId,
             StrategistName = comment.Strategist?.FullName ?? string.Empty,
+            StrategistProfilePhotoUrl = comment.Strategist?.ProfilePhotoUrl ?? string.Empty,
             Content = comment.Content,
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt

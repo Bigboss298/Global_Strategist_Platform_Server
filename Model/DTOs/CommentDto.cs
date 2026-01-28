@@ -6,6 +6,7 @@ public class CommentDto
     public Guid ReportId { get; set; }
     public Guid StrategistId { get; set; }
     public string StrategistName { get; set; } = string.Empty;
+    public string StrategistProfilePhotoUrl { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
