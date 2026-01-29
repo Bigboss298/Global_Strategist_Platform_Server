@@ -10,5 +10,6 @@ public interface IUserService
     Task<PagedResult<UserDto>> GetAllPagedAsync(PaginationRequest request);
     Task<UserDto> UpdateAsync(Guid id, UpdateUserDto updateDto);
     Task<bool> DeleteAsync(Guid id);
+    Task<UserDto> UpdateBadgeAsync(Guid id, UpdateBadgeDto updateBadgeDto);
 }
 

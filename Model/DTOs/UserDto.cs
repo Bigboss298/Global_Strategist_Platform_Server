@@ -19,6 +19,13 @@ public class UserDto
     public bool IsActive { get; set; }
     public Role Role { get; set; }
     public Guid? CorporateAccountId { get; set; }
+    
+    // Badge fields
+    public bool IsVerified { get; set; }
+    public BadgeType BadgeType { get; set; }
+    public DateTime? VerifiedDate { get; set; }
+    public string? VerificationNote { get; set; }
+    
     public DateTime DateCreated { get; set; }
     public DateTime? DateUpdated { get; set; }
 }
@@ -45,5 +52,12 @@ public class UpdateUserDto
     public string ShortBio { get; set; } = string.Empty;
     public IFormFile? CvFile { get; set; }
     public bool IsActive { get; set; }
+}
+
+public class UpdateBadgeDto
+{
+    public bool IsVerified { get; set; }
+    public BadgeType BadgeType { get; set; } // None, Verified, Expert, Premium, Corporate
+    public string? VerificationNote { get; set; }
 }
 

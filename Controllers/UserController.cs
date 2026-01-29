@@ -89,5 +89,33 @@ public class UserController(IUserService userService) : ControllerBase
 
         return NoContent();
     }
-}
 
+    // Admin endpoint for badge management
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}/badge")]
+    public async Task<ActionResult<UserDto>> UpdateBadge(Guid id, [FromBody] UpdateBadgeDto updateBadgeDto)
+    {
+        try
+        {
+            var user = await _userService.UpdateBadgeAsync(id, updateBadgeDto);
+            return Ok(user);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // Admin endpoint to get all users with their badge status
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/badge-management")]
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsersForBadgeManagement([FromQuery] PaginationRequest request)
+    {
+        var users = await _userService.GetAllPagedAsync(request);
+        return Ok(users);
+    }
+}

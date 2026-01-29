@@ -27,6 +27,12 @@ public class User : BaseEntity
     public bool IsActive { get; set; } = true;
     public Role Role { get; set; } = Role.Strategist;
 
+    // Verification Badge fields
+    public bool IsVerified { get; set; } = false;
+    public BadgeType BadgeType { get; set; } = BadgeType.None;
+    public DateTime? VerifiedDate { get; set; }
+    public string? VerificationNote { get; set; } // Optional note about verification
+
     // Link to corporate account if user is part of corporate team
     public Guid? CorporateAccountId { get; set; }
     public CorporateAccount? CorporateAccount { get; set; }

@@ -139,6 +139,41 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
         return true;
     }
+
+    public async Task<UserDto> UpdateBadgeAsync(Guid id, UpdateBadgeDto updateBadgeDto)
+    {
+        var user = await _userRepository.GetByIdAsync(id) ??
+            throw new KeyNotFoundException($"User with ID {id} not found.");
+
+        // Validate badge type - must be valid enum value
+        if (!System.Enum.IsDefined(typeof(BadgeType), updateBadgeDto.BadgeType))
+        {
+            throw new ArgumentException($"Invalid badge type. Valid types are: {string.Join(", ", System.Enum.GetNames(typeof(BadgeType)))}");
+        }
+
+        user.IsVerified = updateBadgeDto.IsVerified;
+        user.BadgeType = updateBadgeDto.BadgeType;
+        user.VerificationNote = updateBadgeDto.VerificationNote;
+        
+        // Set verified date when badge is assigned
+        if (updateBadgeDto.IsVerified && user.VerifiedDate == null)
+        {
+            user.VerifiedDate = DateTime.UtcNow;
+        }
+        else if (!updateBadgeDto.IsVerified)
+        {
+            user.VerifiedDate = null;
+            user.BadgeType = BadgeType.None;
+        }
+
+        user.DateUpdated = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+
+        return MapToDto(user);
+    }
+    
     private static UserDto MapToDto(User user)
     {
         return new UserDto
@@ -158,6 +193,10 @@ public class UserService : IUserService
             IsActive = user.IsActive,
             Role = user.Role,
             CorporateAccountId = user.CorporateAccountId,
+            IsVerified = user.IsVerified,
+            BadgeType = user.BadgeType,
+            VerifiedDate = user.VerifiedDate,
+            VerificationNote = user.VerificationNote,
             DateCreated = user.DateCreated,
             DateUpdated = user.DateUpdated
         };
