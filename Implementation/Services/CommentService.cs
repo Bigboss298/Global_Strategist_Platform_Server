@@ -125,6 +125,7 @@ public class CommentService(
             StrategistId = comment.StrategistId,
             StrategistName = comment.Strategist?.FullName ?? string.Empty,
             StrategistProfilePhotoUrl = comment.Strategist?.ProfilePhotoUrl ?? string.Empty,
+            BadgeType = comment.Strategist != null ? comment.Strategist.BadgeType : Global_Strategist_Platform_Server.Model.Enum.BadgeType.None,
             Content = comment.Content,
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt
