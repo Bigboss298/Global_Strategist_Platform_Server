@@ -38,6 +38,8 @@ public class ReportFeedDto
     public ReactionType? UserReaction { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateUpdated { get; set; }
+    public BadgeType BadgeType { get; set; }
+
 }
 
 public class CreateReportDto

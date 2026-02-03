@@ -155,22 +155,43 @@ public class ReportService(
             .OrderByDescending(r => r.DateCreated)
             .ToListAsync();
 
-        var feedItems = new List<ReportFeedDto>();
+        if (!reports.Any())
+            return Enumerable.Empty<ReportFeedDto>();
 
-        foreach (var report in reports)
+        var reportIds = reports.Select(r => r.Id).ToList();
+
+        // Batch operation: Get all reactions summaries in parallel
+        var reactionsSummariesTask = Task.WhenAll(
+            reportIds.Select(id => _reactionService.GetReactionsSummaryAsync(id))
+        );
+
+        // Batch operation: Get all user reactions if userId is provided
+        Task<ReactionDto?>[] userReactionsTask = null;
+        if (userId.HasValue)
         {
-            // Get reactions summary
-            var reactionsSummary = await _reactionService.GetReactionsSummaryAsync(report.Id);
+            userReactionsTask = reportIds
+                .Select(id => _reactionService.GetByReportAndStrategistAsync(id, userId.Value))
+                .ToArray();
+        }
 
-            // Get user reaction if userId is provided
-            ReactionType? userReaction = null;
-            if (userId.HasValue)
-            {
-                var userReactionDto = await _reactionService.GetByReportAndStrategistAsync(report.Id, userId.Value);
-                userReaction = userReactionDto?.ReactionType;
-            }
+        // Wait for all batch operations to complete
+        await reactionsSummariesTask;
+        var reactionsSummaries = reactionsSummariesTask.Result;
+        
+        Dictionary<Guid, ReactionType?> userReactionsMap = null;
+        if (userReactionsTask != null)
+        {
+            await Task.WhenAll(userReactionsTask);
+            userReactionsMap = reportIds
+                .Zip(userReactionsTask.Select(t => t.Result?.ReactionType), (id, reaction) => new { id, reaction })
+                .ToDictionary(x => x.id, x => x.reaction);
+        }
 
-            feedItems.Add(new ReportFeedDto
+        // Map to DTOs using parallel processing
+        var feedItems = reports
+            .AsParallel()
+            .AsOrdered()
+            .Select((report, index) => new ReportFeedDto
             {
                 Id = report.Id,
                 Title = report.Title,
@@ -181,18 +202,101 @@ public class ReportService(
                 StrategistLastName = report.Strategist?.LastName ?? string.Empty,
                 StrategistCountry = report.Strategist?.Country ?? string.Empty,
                 StrategistProfilePhotoUrl = report.Strategist?.ProfilePhotoUrl ?? string.Empty,
+                BadgeType = (BadgeType)(report.Strategist?.BadgeType),
                 CategoryName = report.Category?.Name ?? string.Empty,
                 ProjectName = report.Project?.Name ?? string.Empty,
                 FieldName = report.Field?.Name ?? string.Empty,
                 ProjectImageUrl = report.Project?.ImageUrl ?? string.Empty,
                 Images = report.Attachments ?? new List<string>(),
                 CommentsCount = report.Comments.Count,
-                ReactionsSummary = reactionsSummary,
-                UserReaction = userReaction,
+                ReactionsSummary = reactionsSummaries[index],
+                UserReaction = userReactionsMap?[report.Id],
                 DateCreated = report.DateCreated,
                 DateUpdated = report.DateUpdated
-            });
+            })
+            .ToList();
+
+        return feedItems;
+    }
+
+    public async Task<IEnumerable<ReportFeedDto>> GetFeedByProjectAsync(Guid projectId, Guid? userId = null)
+    {
+        // Verify project exists
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+            throw new KeyNotFoundException($"Project with ID {projectId} not found.");
+
+        var reports = await _reportRepository.Query()
+            .Include(r => r.Strategist)
+            .Include(r => r.Project)
+            .Include(r => r.Category)
+            .Include(r => r.Field)
+            .Include(r => r.Comments)
+            .Include(r => r.Reactions)
+            .Where(r => r.ProjectId == projectId)
+            .OrderByDescending(r => r.DateCreated)
+            .ToListAsync();
+
+        if (!reports.Any())
+            return Enumerable.Empty<ReportFeedDto>();
+
+        var reportIds = reports.Select(r => r.Id).ToList();
+
+        // Batch operation: Get all reactions summaries in parallel
+        var reactionsSummariesTask = Task.WhenAll(
+            reportIds.Select(id => _reactionService.GetReactionsSummaryAsync(id))
+        );
+
+        // Batch operation: Get all user reactions if userId is provided
+        Task<ReactionDto?>[] userReactionsTask = null;
+        if (userId.HasValue)
+        {
+            userReactionsTask = reportIds
+                .Select(id => _reactionService.GetByReportAndStrategistAsync(id, userId.Value))
+                .ToArray();
         }
+
+        // Wait for all batch operations to complete
+        await reactionsSummariesTask;
+        var reactionsSummaries = reactionsSummariesTask.Result;
+        
+        Dictionary<Guid, ReactionType?> userReactionsMap = null;
+        if (userReactionsTask != null)
+        {
+            await Task.WhenAll(userReactionsTask);
+            userReactionsMap = reportIds
+                .Zip(userReactionsTask.Select(t => t.Result?.ReactionType), (id, reaction) => new { id, reaction })
+                .ToDictionary(x => x.id, x => x.reaction);
+        }
+
+        // Map to DTOs using parallel processing
+        var feedItems = reports
+            .AsParallel()
+            .AsOrdered()
+            .Select((report, index) => new ReportFeedDto
+            {
+                Id = report.Id,
+                Title = report.Title,
+                Content = report.Content,
+                StrategistId = report.StrategistId,
+                StrategistName = report.Strategist?.FullName ?? string.Empty,
+                StrategistFirstName = report.Strategist?.FirstName ?? string.Empty,
+                StrategistLastName = report.Strategist?.LastName ?? string.Empty,
+                StrategistCountry = report.Strategist?.Country ?? string.Empty,
+                StrategistProfilePhotoUrl = report.Strategist?.ProfilePhotoUrl ?? string.Empty,
+                BadgeType = (BadgeType)(report.Strategist?.BadgeType),
+                CategoryName = report.Category?.Name ?? string.Empty,
+                ProjectName = report.Project?.Name ?? string.Empty,
+                FieldName = report.Field?.Name ?? string.Empty,
+                ProjectImageUrl = report.Project?.ImageUrl ?? string.Empty,
+                Images = report.Attachments ?? new List<string>(),
+                CommentsCount = report.Comments.Count,
+                ReactionsSummary = reactionsSummaries[index],
+                UserReaction = userReactionsMap?[report.Id],
+                DateCreated = report.DateCreated,
+                DateUpdated = report.DateUpdated
+            })
+            .ToList();
 
         return feedItems;
     }

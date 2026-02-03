@@ -16,6 +16,7 @@ public interface IReportService
     Task<IEnumerable<ReportDto>> GetByCategoryIdAsync(Guid categoryId);
     Task<PagedResult<ReportDto>> GetByCategoryIdPagedAsync(Guid categoryId, PaginationRequest request);
     Task<IEnumerable<ReportFeedDto>> GetFeedAsync(Guid? userId = null);
+    Task<IEnumerable<ReportFeedDto>> GetFeedByProjectAsync(Guid projectId, Guid? userId = null);
     Task<PagedResult<ReportFeedDto>> GetFeedPagedAsync(Guid? userId, PaginationRequest request);
     Task<ReportDto> CreateAsync(CreateReportDto createDto);
     Task<ReportDto> UpdateAsync(Guid id, UpdateReportDto updateDto);

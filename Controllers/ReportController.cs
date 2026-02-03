@@ -97,6 +97,20 @@ public class ReportController : ControllerBase
         return Ok(feed);
     }
 
+    [HttpGet("feed/project/{projectId}")]
+    public async Task<ActionResult<IEnumerable<ReportFeedDto>>> GetFeedByProject(Guid projectId, [FromQuery] Guid? userId = null)
+    {
+        try
+        {
+            var feed = await _reportService.GetFeedByProjectAsync(projectId, userId);
+            return Ok(feed);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
     [HttpPost]
     public async Task<ActionResult<ReportDto>> Create([FromBody] CreateReportDto createDto)
     {
