@@ -58,7 +58,7 @@ namespace Global_Strategist_Platform_Server.Gateway.FileManager
 
                 const long maxFileSizeInBytes = 5 * 1024 * 1024; // 5MB
                 if (formFile.Length > maxFileSizeInBytes)
-                    return (false, "File size exceeds the 5MB limit.", "");
+                    return (false, "File size exceeds the 1MB limit.", "");
 
                 var fileName = $"{Guid.NewGuid().ToString()[..8]}_{Path.GetFileName(formFile.FileName)}";
                 var containerName = GetContainerName(category);
