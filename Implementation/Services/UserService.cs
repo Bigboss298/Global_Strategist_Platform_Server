@@ -52,7 +52,7 @@ public class UserService : IUserService
 
         var users = await query
             .Where(x => x.Role != Model.Enum.Role.Admin)
-            .OrderBy(u => u.FullName)
+            // .OrderBy(u => u.FullName)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync();
