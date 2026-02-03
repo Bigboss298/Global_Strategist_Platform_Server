@@ -115,7 +115,7 @@ public class RegisterCorporateRequest
     public string Sector { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(250, MinimumLength = 150)]
+    [StringLength(600, MinimumLength = 150)]
     public string CompanyOverview { get; set; } = string.Empty;
 
     public List<string> ContributionInterestAreas { get; set; } = new();
