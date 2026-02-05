@@ -11,7 +11,7 @@ public class UserController(IUserService userService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
 
-    [Authorize]
+    // Public endpoint to view strategist profile
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetById(Guid id)
     {
