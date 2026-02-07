@@ -9,19 +9,28 @@ using Global_Strategist_Platform_Server.Interface.Services;
 using Global_Strategist_Platform_Server.Implementation.Services;
 using Global_Strategist_Platform_Server.Gateway.EmailSender;
 using Global_Strategist_Platform_Server.Gateway.FileManager;
+using Global_Strategist_Platform_Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS configuration - Allow all origins
+// CORS
+// Allow only:
+// 1) https://strategist.tbpinitiative.com
+// 2) http://localhost:3001
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(
+                "https://strategist.tbpinitiative.com",
+                "http://localhost:3001")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -77,6 +86,11 @@ builder.Services.AddScoped<ICorporateService, CorporateService>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IFileManager, FileManager>();
 
+// Chat services and repositories
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured in appsettings.json");
 
@@ -102,6 +116,17 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        // SignalR: Extract token from query string for WebSocket connections
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chat"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
             try
@@ -145,10 +170,10 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetService<ILogger<Program>>();
             var exception = context.Exception;
-            logger?.LogError(exception, "JWT Authentication failed. Exception: {ExceptionType}, Message: {Message}, StackTrace: {StackTrace}", 
-                exception?.GetType().Name, 
-                exception?.Message,
-                exception?.StackTrace);
+            // Avoid dumping stack traces in production logs by default.
+            logger?.LogWarning(exception, "JWT Authentication failed: {ExceptionType}: {Message}",
+                exception?.GetType().Name,
+                exception?.Message);
             return Task.CompletedTask;
         }
     };
@@ -158,8 +183,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-//if (app.Environment.IsDevelopment())
-//{
+// Seed data only when explicitly enabled (default: Development only).
+var seedEnabled = app.Configuration.GetValue<bool?>("Seed:Enabled")
+    ?? app.Environment.IsDevelopment();
+if (seedEnabled)
+{
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
@@ -171,7 +199,7 @@ var app = builder.Build();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while seeding the database.");
     }
-//}
+}
 
 //if (app.Environment.IsDevelopment())
 //{
@@ -179,14 +207,50 @@ var app = builder.Build();
     app.UseSwaggerUI();
 //}
 
-app.UseHttpsRedirection();
+// NOTE: In Development we often use the HTTP endpoint (e.g. from Vite on the LAN).
+// HTTPS redirection breaks browser CORS preflight because OPTIONS cannot follow redirects.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS
 app.UseCors("AllowFrontend");
+
+// Dev-only: log SignalR hub requests to diagnose realtime connection failures
+if (app.Environment.IsDevelopment())
+{
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/hubs/chat"))
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation(
+                "SignalR request: {Method} {Path}{Query}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Request.QueryString.ToString());
+        }
+
+        await next();
+
+        if (context.Request.Path.StartsWithSegments("/hubs/chat"))
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation(
+                "SignalR response: {StatusCode} {Path}",
+                context.Response.StatusCode,
+                context.Request.Path);
+        }
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();

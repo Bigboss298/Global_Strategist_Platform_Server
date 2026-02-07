@@ -21,6 +21,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorporateInvite> CorporateInvites { get; set; }
     public DbSet<CorporatePayment> CorporatePayments { get; set; }
 
+    // Chat entities
+    public DbSet<ChatRoom> ChatRooms { get; set; }
+    public DbSet<ChatParticipant> ChatParticipants { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
