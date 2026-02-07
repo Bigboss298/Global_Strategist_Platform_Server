@@ -25,7 +25,8 @@ builder.Services.AddCors(options =>
                 "https://strategist.tbpinitiative.com",
                 "http://localhost:3001")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // Required for SignalR
     });
 });
 
